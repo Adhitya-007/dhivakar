@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Traffic Junction Control Game</title>
+
+<style>
+body {
+    margin: 0;
+    font-family: Arial;
+    background: #0f172a;
+    color: white;
+}
+
+header {
+    background: #1e293b;
+    padding: 15px;
+    font-size: 24px;
+    text-align: center;
+}
+
+.main-container {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    gap: 40px;
+    margin-top: 20px;
+}
+
+/* RIGHT SIDE PANEL */
+.panel {
+    background: #1e293b;
+    padding: 20px;
+    border-radius: 10px;
+    width: 320px;
+}
+
+.panel button {
+    padding: 8px;
+    margin: 5px 0;
+    width: 100%;
+    background: #22c55e;
+    border: none;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.panel hr {
+    margin: 15px 0;
+}
+
+/* JUNCTION */
+.junction {
+    position: relative;
+    width: 600px;
+    height: 600px;
+    background: #2f2f2f;
+}
+
+.road-h {
+    position: absolute;
+    top: 250px;
+    width: 600px;
+    height: 100px;
+    background: #3a3a3a;
+}
+
+.road-v {
+    position: absolute;
+    left: 250px;
+    width: 100px;
+    height: 600px;
+    background: #3a3a3a;
+}
+
+/* Cars */
+.car {
+    width: 25px;
+    height: 15px;
+    position: absolute;
+    border-radius: 4px;
+}
+
+/* Traffic Lights */
+.light-box {
+    position: absolute;
+    width: 20px;
+    height: 60px;
+    background: #111;
+    border-radius: 6px;
+    padding: 3px;
+}
+
+.light {
+    width: 12px;
+    height: 12px;
+    margin: 4px auto;
+    border-radius: 50%;
+    background: #333;
+}
+
+.red { background: red; }
+.green { background: lime; }
+
+#northBox { top: 200px; left: 290px; }
+#southBox { top: 340px; left: 290px; }
+#westBox { top: 290px; left: 200px; }
+#eastBox { top: 290px; left: 380px; }
+
+</style>
+</head>
+
+<body>
+
+<header>🚦 Interactive Traffic Junction Game</header>
+
+<div class="main-container">
+
+    <!-- JUNCTION AREA -->
+    <div class="junction" id="junction">
+        <div class="road-h"></div>
+        <div class="road-v"></div>
+
+        <div class="light-box" id="northBox"><div class="light" id="north"></div></div>
+        <div class="light-box" id="southBox"><div class="light" id="south"></div></div>
+        <div class="light-box" id="westBox"><div class="light" id="west"></div></div>
+        <div class="light-box" id="eastBox"><div class="light" id="east"></div></div>
+    </div>
+
+    <!-- RIGHT SIDE SCORE PANEL -->
+    <div class="panel">
+
+        <h3>🎮 Signal Control</h3>
+
+        <button onclick="setGreen('north')">North</button>
+        <button onclick="setGreen('south')">South</button>
+        <button onclick="setGreen('east')">East</button>
+        <button onclick="setGreen('west')">West</button>
+
+        <hr>
+
+        <p>🎯 Current Efficiency: <span id="currentEfficiency">0</span></p>
+        <p>🏆 Best Efficiency: <span id="bestEfficiency">0</span></p>
+
+        <p>🤖 Optimal Solution:</p>
+        <p id="optimalSolution">Not enough data</p>
+
+        <hr>
+
+        <p>🎮 Score: <span id="score">0</span></p>
+        <p id="status"></p>
+
+    </div>
+
+</div>
+
+<script>
+
+let greenDirection = "north";
+let score = 0;
+let congestionLevel = 0.2;
+
+function setGreen(direction){
+    greenDirection = direction;
+    updateLights();
+}
+
+function updateLights(){
+    let dirs = ["north","south","east","west"];
+    dirs.forEach(d=>{
+        document.getElementById(d).classList.remove("green");
+        document.getElementById(d).classList.add("red");
+    });
+
+    document.getElementById(greenDirection).classList.remove("red");
+    document.getElementById(greenDirection).classList.add("green");
+}
+
+function spawnCar(){
+    let junction = document.getElementById("junction");
+    let car = document.createElement("div");
+    car.className = "car";
+
+    let colors = ["#ef4444","#3b82f6","#22c55e","#facc15"];
+    car.style.background = colors[Math.floor(Math.random()*4)];
+
+    let direction = ["north","south","east","west"][Math.floor(Math.random()*4)];
+
+    if(direction==="north"){
+        car.style.top="0px";
+        car.style.left="290px";
+        moveCar(car,"top",600,direction);
+    }
+
+    if(direction==="south"){
+        car.style.top="600px";
+        car.style.left="310px";
+        moveCar(car,"top",0,direction);
+    }
+
+    if(direction==="west"){
+        car.style.left="0px";
+        car.style.top="290px";
+        moveCar(car,"left",600,direction);
+    }
+
+    if(direction==="east"){
+        car.style.left="600px";
+        car.style.top="310px";
+        moveCar(car,"left",0,direction);
+    }
+
+    junction.appendChild(car);
+}
+
+function moveCar(car,property,target,direction){
+
+    let pos = parseInt(car.style[property]);
+
+    let interval = setInterval(()=>{
+
+        if(direction!==greenDirection){
+            congestionLevel += 0.003;
+            return;
+        }
+
+        pos += (target>pos?2:-2);
+        car.style[property] = pos+"px";
+
+        if((target>0 && pos>=target) || (target===0 && pos<=0)){
+            clearInterval(interval);
+            car.remove();
+            score++;
+            document.getElementById("score").innerText = score;
+            congestionLevel = Math.max(0, congestionLevel-0.01);
+        }
+
+    },20);
+}
+
+async function updateEfficiency(){
+
+    let res = await fetch(`/play?lanes=4&signal_time=60`,{
+        method:"POST"
+    });
+
+    let data = await res.json();
+    let efficiency = data.efficiency_reward;
+
+    document.getElementById("currentEfficiency").innerText =
+        efficiency.toFixed(2);
+
+    loadOptimal();
+}
+
+async function loadOptimal(){
+
+    let res = await fetch('/optimal');
+    let data = await res.json();
+
+    if(data.optimal_action){
+
+        document.getElementById("optimalSolution").innerText =
+            "Lanes: " + data.optimal_action.lanes +
+            " | Signal: " + data.optimal_action.signal_time;
+
+        let worldRes = await fetch('/world');
+        let world = await worldRes.json();
+
+        let bestEfficiency = 1 - world.congestion;
+
+        document.getElementById("bestEfficiency").innerText =
+            bestEfficiency.toFixed(2);
+    }
+}
+
+function gameLoop(){
+
+    spawnCar();
+
+    if(congestionLevel>1){
+        document.getElementById("status").innerText="🚨 GAME OVER – Traffic Jam!";
+        clearInterval(mainLoop);
+    }
+
+    updateEfficiency();
+}
+
+let mainLoop = setInterval(gameLoop,2000);
+
+updateLights();
+loadOptimal();
+
+</script>
+
+</body>
+</html>
