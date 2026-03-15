@@ -61,6 +61,7 @@ def play(lanes: int = None, signal_time: int = None):
     }
 
 
+
 @app.get("/optimal")
 def optimal():
     return optimization_agent.suggest()
